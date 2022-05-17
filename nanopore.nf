@@ -1,10 +1,4 @@
 nextflow.enable.dsl=2
-//reads 
-params. 
-
-//ref to be determined
-//krakenDb
-
 
 workflow {
     //Get long read

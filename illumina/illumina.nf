@@ -1,12 +1,5 @@
 nextflow.enable.dsl=2
 
-p = "/home/ubuntu/data/belson/projects/projects_2021/napa/input_data/clean_illumina_reads"
-// Illumina reads
-params.reads = "$projectDir/*/*{1,2}.fastq.gz"
-//bbduk ref
-params.bbRef = "/home/ubuntu/external_tb/references/2019.04.22/adapters.fa"
-// ref_genome
-params.ref_genome = "/home/ubuntu/data/belson/reference/2021.04.01/17762-33892_1_71_contigs.fa"
 workflow {
     reads_ch = Channel.fromFilePairs(params.reads, checkIfExists:true)
 
@@ -100,7 +93,7 @@ PHENIX{
     path "$sample/Phenix"
     script:
     """
-    phenix.py run_snp_pipeline.py -r1 ${trimmed[0]} -r2 ${trimmed[1]} -r $ref_genome --sample-name $sample --mapper bwa --variant gatk --filters min_depth:5,mq_score:30
+    phenix.py run_snp_pipeline -r1 ${trimmed[0]} -r2 ${trimmed[1]} -r $ref_genome --sample-name $sample --mapper bwa --variant gatk --filters min_depth:5,mq_score:30
     """
 }
 

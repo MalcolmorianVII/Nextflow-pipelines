@@ -1,2 +1,2 @@
-.nextflow*
-work
+*.nextflow*
+*work

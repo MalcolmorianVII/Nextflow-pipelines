@@ -82,7 +82,7 @@ PREPARE-PHENIX{
 }
 
 PHENIX{
-    tag "Perform read QC"
+    tag "Perform variant calling"
     publishDir "$projectDir/$sample",mode:"copy"
     conda "/home/belson/.conda/envs/phenix"
 
@@ -98,7 +98,7 @@ PHENIX{
 }
 
 SKESA{
-   tag "Perform read QC"
+   tag "Perform read assembly"
     publishDir "$projectDir/$sample",mode:"copy"
     conda "/home/belson/miniconda3/envs/skesa"
     input:
@@ -112,7 +112,7 @@ SKESA{
 }
 
 ASSEMBLY-STATS{
-    tag "Perform read QC"
+    tag "Perform assembly QC"
     publishDir "$projectDir/$sample",mode:"copy"
     conda "/home/belson/miniconda3/envs/assembly-stat"
     input:

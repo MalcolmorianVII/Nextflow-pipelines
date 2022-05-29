@@ -57,11 +57,12 @@ process MULTIQC{
     path trimmed
 
     output:
-    file "{qc_results_dir}/multiqc_report.html"
+    file "multiQC/multiqc_report.html"
 
     script:
     """
-    multiqc -o {qc_results_dir} $trimmed
+    mkdir multiQC
+    multiqc -o multiQC $trimmed
     """
 }
 

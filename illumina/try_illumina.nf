@@ -1,17 +1,12 @@
 nextflow.enable.dsl=2
 
-p = "/home/ubuntu/data/belson/projects/projects_2021/napa/input_data/clean_illumina_reads"
-// Illumina reads
-// params.reads = "$projectDir/*/*{1,2}.fastq.gz"
-params.reads = "$p/*/*_R{1,2}.fastq.gz"
-
-// ch = Channel.fromFilePairs(params.reads)
-// ch.view()
-
 workflow {
     reads_ch = Channel.fromFilePairs(params.reads, checkIfExists:true)
 
     FASTQC(reads_ch)
+    BBDUK(reads_ch)
+    SKESA(BBDUK.out)
+    ASSEMBLY-STATS(SKESA.out)
 }
 
 process FASTQC{
@@ -33,3 +28,48 @@ process FASTQC{
 
 }
 
+process BBDUK{
+    tag "Perform read trimming"
+    publishDir "$projectDir/${sample}",mode:"copy"
+    conda "/home/belson/miniconda3/envs/bbduk"
+
+    input:
+    tuple val(sample),path(reads)
+
+    output:
+    path trimmed
+
+    script:
+    """
+    bbduk.sh threads=8 in=${reads[0]} in2=${reads[1]} out=${sample}_trimmed_r1.fastq.gz out2=${sample}_trimmed_r2.fastq.gz ktrim=r k=23 mink=11 hdist=1 tbo tpe qtrim=r trimq=20 minlength=50
+    """
+}
+
+
+process SKESA{
+    tag "Perform read assembly"
+    publishDir "$projectDir/${sample}",mode:"copy"
+    conda "/home/belson/miniconda3/envs/skesa"
+    input:
+    path trimmed
+    output:
+    path "${sample}/skesa/${sample}_skesa.fa"
+    script:
+    """
+    skesa --fasta $trimmed --cores 4 --memory 48 > ${sample}/skesa/${sample}_skesa.fa
+    """
+}
+
+process ASSEMBLY-STATS{
+    tag "Perform assembly QC"
+    publishDir "$projectDir/${sample}",mode:"copy"
+    conda "/home/belson/miniconda3/envs/assembly-stat"
+    input:
+    path "${sample}/skesa/${sample}_skesa.fa"
+    output:
+    path "${sample}/assembly-stat"
+    script:
+    """
+    assembly-stats -t ${sample}/skesa > ${sample}/assembly-stat/${sample}_contigs.assembly_stats.tsv
+    """
+}

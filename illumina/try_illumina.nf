@@ -5,8 +5,8 @@ workflow {
 
     FASTQC(reads_ch)
     BBDUK(reads_ch)
-    SKESA(BBDUK.out)
-    ASSEMBLY-STATS(SKESA.out)
+    SKESA(reads_ch,BBDUK.out)
+    ASSEMBLY_STATS(reads_ch,SKESA.out)
 }
 
 process FASTQC{
@@ -30,14 +30,15 @@ process FASTQC{
 
 process BBDUK{
     tag "Perform read trimming"
-    publishDir "$projectDir/${sample}",mode:"copy"
+    publishDir "$projectDir/${sample}/bbduk",mode:"copy"
     conda "/home/belson/miniconda3/envs/bbduk"
 
     input:
     tuple val(sample),path(reads)
 
     output:
-    path trimmed
+    path "${sample}_trimmed_r1.fastq.gz"
+    path "${sample}_trimmed_r2.fastq.gz"
 
     script:
     """
@@ -48,28 +49,37 @@ process BBDUK{
 
 process SKESA{
     tag "Perform read assembly"
-    publishDir "$projectDir/${sample}",mode:"copy"
+    publishDir "$projectDir/${sample}/skesa",mode:"copy"
     conda "/home/belson/miniconda3/envs/skesa"
+
     input:
-    path trimmed
+    tuple val(sample),path(reads)
+    path "${sample}_trimmed_r1.fastq.gz"
+    path "${sample}_trimmed_r2.fastq.gz"
+
     output:
-    path "${sample}/skesa/${sample}_skesa.fa"
+    file "${sample}_skesa.fa"
+
     script:
     """
-    skesa --fasta $trimmed --cores 4 --memory 48 > ${sample}/skesa/${sample}_skesa.fa
+    skesa --fastq ${sample}_trimmed_r1.fastq.gz ${sample}_trimmed_r2.fastq.gz --cores 4 --memory 48 > ${sample}_skesa.fa
     """
 }
 
-process ASSEMBLY-STATS{
+process ASSEMBLY_STATS{
     tag "Perform assembly QC"
-    publishDir "$projectDir/${sample}",mode:"copy"
+    publishDir "$projectDir/${sample}/assembly-stat",mode:"copy"
     conda "/home/belson/miniconda3/envs/assembly-stat"
+
     input:
-    path "${sample}/skesa/${sample}_skesa.fa"
+    tuple val(sample),path(reads)
+    file "${sample}_skesa.fa"
+
     output:
-    path "${sample}/assembly-stat"
+    file "${sample}_contigs.assembly_stats.tsv"
+
     script:
     """
-    assembly-stats -t ${sample}/skesa > ${sample}/assembly-stat/${sample}_contigs.assembly_stats.tsv
+    assembly-stats -t ${sample}_skesa.fa > ${sample}_contigs.assembly_stats.tsv
     """
 }

@@ -12,27 +12,28 @@ workflow {
     ASSEMBLY-STATS(SKESA.out)
 }
 
-FASTQC{
+process FASTQC{
     tag "Perform read QC"
-    publishDir "$projectDir/$sample",mode:"copy"
+    publishDir "$projectDir/${sample}",mode:"copy"
     conda "/home/belson/miniconda3/envs/fastqc"
 
     input:
     tuple val(sample),path(reads)
 
     output:
-    path( "*_fastqc*" ), emit: fastqc_out
+    path( "*" ), emit: fastqc_out
 
     script:
     """
-    fastqc ${reads}
+    mkdir fastqc
+    fastqc ${reads} -o fastqc
     """
 
 }
 
-BBDUK{
+process BBDUK{
     tag "Perform read trimming"
-    publishDir "$projectDir/$sample",mode:"copy"
+    publishDir "$projectDir/${sample}",mode:"copy"
     conda "/home/belson/miniconda3/envs/bbduk"
 
     input:
@@ -47,9 +48,9 @@ BBDUK{
     """
 }
 
-MULTIQC{
+process MULTIQC{
     tag "Perform collective read QC"
-    publishDir "$projectDir/$sample",mode:"copy"
+    publishDir "$projectDir/${sample}",mode:"copy"
     conda "/home/belson/miniconda3/envs/multiqc"
 
     input:
@@ -64,9 +65,9 @@ MULTIQC{
     """
 }
 
-PREPARE-PHENIX{
+process PREPARE-PHENIX{
     tag "Prepare reference genome"
-    publishDir "$projectDir/$sample",mode:"copy"
+    publishDir "$projectDir/${sample}",mode:"copy"
     conda "/home/belson/.conda/envs/phenix"
 
     input:
@@ -81,46 +82,46 @@ PREPARE-PHENIX{
     """
 }
 
-PHENIX{
+process PHENIX{
     tag "Perform variant calling"
-    publishDir "$projectDir/$sample",mode:"copy"
+    publishDir "$projectDir/${sample}",mode:"copy"
     conda "/home/belson/.conda/envs/phenix"
 
     input:
     path trimmed
     file ref_genome
     output:
-    path "$sample/Phenix"
+    path "${sample}/Phenix"
     script:
     """
-    phenix.py run_snp_pipeline -r1 ${trimmed[0]} -r2 ${trimmed[1]} -r $ref_genome --sample-name $sample --mapper bwa --variant gatk --filters min_depth:5,mq_score:30
+    phenix.py run_snp_pipeline -r1 ${trimmed[0]} -r2 ${trimmed[1]} -r $ref_genome --sample-name ${sample} --mapper bwa --variant gatk --filters min_depth:5,mq_score:30
     """
 }
 
-SKESA{
+process SKESA{
    tag "Perform read assembly"
-    publishDir "$projectDir/$sample",mode:"copy"
+    publishDir "$projectDir/${sample}",mode:"copy"
     conda "/home/belson/miniconda3/envs/skesa"
     input:
     path trimmed
     output:
-    path "$sample/skesa/${sample}_skesa.fa"
+    path "${sample}/skesa/${sample}_skesa.fa"
     script:
     """
-    skesa --fasta $trimmed --cores 4 --memory 48 > $sample/skesa/${sample}_skesa.fa
+    skesa --fasta $trimmed --cores 4 --memory 48 > ${sample}/skesa/${sample}_skesa.fa
     """
 }
 
-ASSEMBLY-STATS{
+process ASSEMBLY-STATS{
     tag "Perform assembly QC"
-    publishDir "$projectDir/$sample",mode:"copy"
+    publishDir "$projectDir/${sample}",mode:"copy"
     conda "/home/belson/miniconda3/envs/assembly-stat"
     input:
-    path "$sample/skesa/${sample}_skesa.fa"
+    path "${sample}/skesa/${sample}_skesa.fa"
     output:
-    path "$sample/assembly-stat"
+    path "${sample}/assembly-stat"
     script:
     """
-    assembly-stats -t $sample/skesa > $sample/assembly-stat/${sample}_contigs.assembly_stats.tsv
+    assembly-stats -t ${sample}/skesa > ${sample}/assembly-stat/${sample}_contigs.assembly_stats.tsv
     """
 }
